@@ -1,7 +1,9 @@
 module Common
     (
     eitherError,
-    doExercise
+    doExercise,
+    both,
+    hasLength
     ) where
 
 
@@ -13,3 +15,11 @@ doExercise input ex = fmap ex (readFile input)
 eitherError :: Show a => Either a b -> b
 eitherError (Left a) = (error . show) a
 eitherError (Right b) = b
+
+both :: (a->b) -> (a,a) -> (b,b)
+both f (a1,a2) = (f a1, f a2)
+
+hasLength 0 [] = True
+hasLength 0 (_:_) = False
+hasLength n [] = False
+hasLength n (_:xs) = hasLength (n-1) xs
