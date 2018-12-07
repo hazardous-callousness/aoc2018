@@ -1,4 +1,5 @@
 .stack-work/
+.temp/
 aoc2018.cabal
 input/
 *~
