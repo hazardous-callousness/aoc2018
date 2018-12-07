@@ -24,41 +24,61 @@ parseInput = parse file ""
 
 
 
-exercise1 = solution . eitherError . parseInput
+exercise1 = solve . dependencies . eitherError . parseInput
   where
-    solution = solve . dependencies
     solve m
       | M.null m = []
-      | otherwise = letter : solve (updateMap m)
-      where
-        (letter,_) = M.findMin $ M.filter S.null m
-        updateMap = M.map (S.delete letter) . M.delete letter
+      | otherwise = let
+        letter = fst $ M.findMin $ M.filter S.null m
+        m' = M.map (S.delete letter) $ M.delete letter m
+        in letter : solve m'
 
--- surely it can be smaller than this?
-exercise2 = solution . eitherError . parseInput
+exercise1' = fst . simulation cost workers . dependencies . eitherError . parseInput
   where
-    solution = simulate 0 M.empty . dependencies
-    simulate time working todo
-      | M.null todo   = time + maximum (M.elems working)
-      | taskAvailable = let
-        (letter,_) = M.findMin availableLetters
-        timeReq    = fromJust $ lookup letter $ zip ['A'..] [61..]
-        working'   = M.insert letter timeReq working
-        todo'      = M.delete letter todo
-        in simulate time working' todo'
-      | otherwise     = let
-        (letter,passed) = minimumBy (compare `on` snd) $ M.assocs working
-        time'           = time+passed
-        working'        = M.map (subtract passed) $ M.delete letter working
-        todo'           = M.map (S.delete letter) todo
-        in simulate time' working' todo'
+    cost    = const 1
+    workers = 1
+
+exercise2 = snd . simulation cost workers . dependencies . eitherError . parseInput
+  where
+    cost l  = fromJust $ lookup l $ zip ['A'..] [61..]
+    workers = 5
+
+
+
+simulation cost workers = step 0 M.empty []
+  where
+    step time working done todo
+      -- done
+      | M.null todo && M.null working = (done, time)
+      -- free up completed tasks
+      | not $ M.null $ M.filter (==0) working = let
+        (ready,working') = M.partition (==0) working
+        lettersDone      = M.keysSet ready
+        todo'            = M.map (`S.difference` lettersDone) todo
+        done'            = done ++ S.toList lettersDone
+        in step time working' done' todo'
+      -- assign work
+      | freeWorkers > 0 && not (S.null availableLetters) = let
+        newWork  = M.fromSet cost $ sTake freeWorkers availableLetters
+        working' = M.union working newWork
+        todo'    = M.difference todo newWork
+        in step time working' done todo'
+      -- go to next time step
+      | otherwise = let
+        passed   = minimum $ M.elems working
+        time'    = time+passed
+        working' = M.map (subtract passed) working
+        in step time' working' done todo
       where
-        availableLetters = M.filter S.null todo
-        taskAvailable    = M.size working < 5 && not (M.null availableLetters)
+        freeWorkers = workers - M.size working
+        availableLetters = M.keysSet $ M.filter S.null todo
+
 
 
 dependencies input = let
-  allLetters     = S.fromList . uncurry (++) . unzip
   addDep m (a,b) = M.alter (fmap (S.insert a)) b m
-  letters        = M.fromSet (const S.empty) $ allLetters input
+  letters        = (M.fromSet (const S.empty) . S.fromList . uncurry (++) . unzip) input
   in foldl addDep letters input
+
+-- modern haskell has S.take
+sTake n = S.fromList . take n . S.toList
