@@ -11,7 +11,7 @@ module Common
     groupPer,
     shifts
     ) where
-import           Text.ParserCombinators.Parsec (digit, many1)
+import           Text.ParserCombinators.Parsec (digit, many1, oneOf)
 
 -- simple wrapper for running an exercise on a given file
 doExercise input ex = fmap ex (readFile input)
@@ -32,7 +32,7 @@ hasLength n []     = False
 hasLength n (_:xs) = hasLength (n-1) xs
 
 -- parse digits and convert to Int
-readInt = fmap (read::String->Int) (many1 digit)
+readInt = fmap (read::String->Int) (many1 (oneOf ('-':['0'..'9'])))
 
 -- collect list per n items
 groupPer _ [] = []
