@@ -1,81 +1,54 @@
 #include<stdio.h>
 #include<stdlib.h>
-#define NUM long int
-#define SCORE long long int
+#define NODE unsigned int
+#define SCORE long
 
-typedef struct node node;
+SCORE get_winning_score(const int players, const NODE marbles) {
+  SCORE* const scores = calloc(players,sizeof(SCORE));
+  NODE*  const after  = calloc(marbles,sizeof(NODE));
+  NODE current = 0, back;
+  after[current] = current;
 
-struct node {
-  NUM val;
-  node* next;
-};
-
-SCORE getHighscore(const int players, const NUM marbles) {
-  SCORE* const scores = calloc(players,sizeof(NUM));
-  node* const start = calloc(marbles,sizeof(node));
-  node* temp;
-  node* nextNode = start;
-  node* curNode = nextNode++;
-  curNode->val = 0;
-  curNode->next = curNode;
-
-  int behind = 0;
-  node* trailing = curNode;
-
-  int player = 0;
-
-  for (NUM marble = 1; marble <= marbles; marble++) {
+  for (NODE marble = 1; marble <= marbles; marble++, current = after[current]) {
     if (marble % 23 == 0) {
-      node* const removed = trailing->next;
-      scores[player] += (SCORE) (marble + removed->val);
+      const NODE removed = after[back], next = after[removed];
+      after[back] = next;
+      current     = next;
 
-      curNode = removed->next;
-      trailing->next = curNode;
-      curNode = curNode->next;
-
-      behind = 0;
-      trailing = curNode;
+      const int player = marble % players;
+      scores[player] += (SCORE)marble + (SCORE)removed;
     }
     else {
-      node* const newNode = nextNode++;
-      newNode->val = marble;
-      newNode->next = curNode->next;
+      const NODE next = after[current], new = marble;
+      after[current] = new;
+      after[new]     = next;
+      current        = new;
 
-      curNode->next = newNode;
-      curNode = newNode;
-
-      curNode = curNode->next;
-      trailing = trailing->next;
-
-      if (behind <= 8)
-        behind++;
-      else
-        trailing = trailing->next;
+      if (marble % 23 == 18)
+        back = current;
     }
-
-
-    player = (player+1) % players;
   }
 
   SCORE maximum = 0;
-
-  for (player = 0; player < players; player++)
+  for (int player = 0; player < players; player++)
     if (scores[player] > maximum)
       maximum = scores[player];
 
   free(scores);
-  free(start);
+  free(after);
 
   return maximum;
 }
 
-void solve(const int players, const NUM marbles) {
-  printf("%d players\n%ld marbles\n%ld MiB allocated\n", players, marbles, (marbles*sizeof(node)+players*sizeof(NUM))/1024/1024);
-  printf("highscore: %lld\n\n", getHighscore(players, marbles));
+void solve(const int players, const NODE marbles) {
+  const int mem = (marbles*sizeof(NODE)+players*sizeof(SCORE))/1024/1024;
+  printf("%u players\n%u marbles\n%u MiB allocated\n", players, marbles, mem);
+  printf("highscore: %ld\n\n", get_winning_score(players, marbles));
 }
 
 int main(int argc, char** argv) {
-  solve(418, 71339);
-  solve(418, 71339*100);
+  solve(9,25);
+  solve(10,1618);
+  // solve(418, 71339);
   return 0;
 }
